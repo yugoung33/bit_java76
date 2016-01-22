@@ -1,5 +1,4 @@
-// 게시물 목록 출력 오류 사례1:
-// => DBMS 결과를 가져오기 전에 클라이언트로 출력할 경우
+// select 실행
 var http = require('http');
 var mysql = require('mysql');    // mysql 연동 라이브러리 객체 준비
 var url = require('url');
@@ -24,20 +23,20 @@ var httpServer = http.createServer(function(request, response) {
   });
   
   if (urlInfo.pathname == '/board/list.do') {
-    // 게시물 목록을 가져온 후에 클라이언트에게 응답한다.
+    response.write("<!DOCTYPE html>\n");
+    response.write("<html>\n");
+    response.write("<head>\n");
+    response.write("<meta charset=\"UTF-8\">\n");
+    response.write("<title>게시판</title>\n");
+    response.write("</head>\n");
+    response.write("<body>\n");
+    response.write("<h1>게시물 목록</h1>\n");
+    
+    // 게시물 목록 가져오기
     connection.query(
         'select bno, title, views, cre_dt from board',
         function(err, rows, fields) { // 서버에서 결과를 받았을 때 호출되는 함수
           if (err) throw err;
-            response.write("<!DOCTYPE html>\n");
-            response.write("<html>\n");
-            response.write("<head>\n");
-            response.write("<meta charset=\"UTF-8\">\n");
-            response.write("<title>게시판</title>\n");
-            response.write("</head>\n");
-            response.write("<body>\n");
-            response.write("<h1>게시물 목록</h1>\n");
-            
             response.write("<table>\n");
             response.write("<tr>\n");
             response.write("  <th>번호</th><th>제목</th><th>조회수</th><th>작성일</th>\n");
@@ -52,13 +51,13 @@ var httpServer = http.createServer(function(request, response) {
           }
           
           response.write("</table>\n");
-          response.write("</body>\n");
-          response.write("</html>\n");
-          response.end();
     });
     
+    response.write("</body>\n");
+    response.write("</html>\n");
   }
   
+  response.end();
 });
 
 // 3) HTTP 서버 가동
@@ -67,3 +66,4 @@ console.log("서버 실행 중...");
 
 
 
+connection.end();
