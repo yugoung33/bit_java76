@@ -1,15 +1,10 @@
-/* static file 응답하기  */
 var mysql = require('mysql');
 var dateFormat = require('dateformat');
+var url = require('url');
+var qs = require('querystring');
 var express = require('express');
-var bodyParser = require('body-parser');
 var app = express();
-
-//express 모듈에 보조 장치 장착한다.
-app.use(bodyParser.json()); // JSON 형식으로 넘오온 데이터 처리 
-app.use(bodyParser.urlencoded({extended:true}));
-app.use(express.static('www'));
-
+ 
 var pool  = mysql.createPool({
   connectionLimit : 10,
   host     : 'localhost',
@@ -28,7 +23,7 @@ app.get('/', function (request, response) {
 
 app.get('/board/list.do', function (request, response) {
 	pool.query(
-	  'select bno, title, views, cre_dt from board order by bno desc', 
+	  'select bno, title, views, cre_dt from board', 
 	  function(err, rows, fields) { 
 		  if (err) throw err;
 		  response.writeHead(200, {
@@ -42,7 +37,7 @@ app.get('/board/list.do', function (request, response) {
 		  response.write("</head>\n");
 		  response.write("<body>\n");
 		  response.write("<h1>게시물 목록</h1>\n");
-		  response.write("<a href='form.html'>새 글</a>	\n");
+			
 		  response.write("<table>\n");
 		  response.write("<tr>\n");
 		  response.write("	<th>번호</th><th>제목</th><th>조회수</th><th>작성일</th>\n");
@@ -67,10 +62,11 @@ app.get('/board/list.do', function (request, response) {
 });
 
 app.get('/board/detail.do', function(request, response) {
+	var urlInfo = url.parse(request.url, true);
 	
 	pool.query(
 	  'select bno, title, content, views, cre_dt from board where bno=?',
-	  [request.query.no], 
+	  [urlInfo.query.no], 
 	  function(err, rows, fields) { 
 		  if (err) throw err;
 		  response.writeHead(200, {
@@ -124,10 +120,11 @@ app.get('/board/detail.do', function(request, response) {
 });
 
 app.get('/board/delete.do', function(request, response) {
+	var urlInfo = url.parse(request.url, true);
 	
 	pool.query(
 	  "delete from board where bno=?", 
-	  [request.query.no], 
+	  [urlInfo.query.no], 
 	  function(err, rows, fields) {
 		  if (err) throw err;
 		  response.writeHead(302, {
@@ -138,28 +135,26 @@ app.get('/board/delete.do', function(request, response) {
 });
 
 app.post('/board/update.do', function(request, response) {
-	pool.query(
-	  "update board set title=?, content=? where bno=?", 
-	  [request.body.title,request.body.content,request.body.no], 
-	  function(err, rows, fields) {
-		  if (err) throw err;
-		  response.writeHead(302, {
-			  'Location' : '/board/list.do' 
-		  });
-		  response.end();
-	});
-});
+	var urlInfo = url.parse(request.url, true);
+	
+	var message = '';
 
-app.post('/board/add.do', function(request, response) {
-	pool.query(
-	  "insert into board(title,content,cre_dt) values(?,?,now())", 
-	  [request.body.title,request.body.content], 
-	  function(err, rows, fields) {
-		  if (err) throw err;
-		  response.writeHead(302, {
-			  'Location' : '/board/list.do' 
-		  });
-		  response.end();
+	request.on('data', function(data) {
+		message += data;
+	});
+
+	request.on('end', function() {
+		var params = qs.parse(message);
+		pool.query(
+		  "update board set title=?, content=? where bno=?", 
+		  [params.title,params.content,params.no], 
+		  function(err, rows, fields) {
+			  if (err) throw err;
+			  response.writeHead(302, {
+				  'Location' : '/board/list.do' 
+			  });
+			  response.end();
+		});
 	});
 });
 
